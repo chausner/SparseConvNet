@@ -1,4 +1,4 @@
 #include "Picture.h"
 std::string Picture::identify() { return std::string(); }
-Picture::Picture(int label) : label(label) {}
+Picture::Picture(std::vector<int> labels) : labels(labels) {}
 Picture::~Picture() {}

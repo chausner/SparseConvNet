@@ -28,11 +28,19 @@ SpatiallySparseDataset LoadUniProtDataset(const char *filename, batchType batchT
 	{
 		std::string pdbFilename;
 		std::string chainsStr;
-		int label;
+		std::vector<int> labels;
 
 		file >> pdbFilename;
 		file >> chainsStr;
-		file >> label;
+        
+		int nLabels;
+		file >> nLabels;
+		for (int j = 0; j < nLabels; j++)
+		{
+			int label;
+			file >> label;
+			labels.push_back(label); 
+		}
 
 		std::vector<char> chains(chainsStr.begin(), chainsStr.end());
 

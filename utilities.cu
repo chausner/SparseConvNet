@@ -57,6 +57,22 @@ std::vector<int> vectorTopIndices(std::vector<t> &test, int k) {
 template std::vector<int> vectorTopIndices<float>(std::vector<float> &test,
                                                   int k);
 
+std::vector<int> multiLabelClassification(std::vector<float> &test, float threshold) {
+	std::vector<int> indices;
+
+	//float maxProb = *std::max_element(test.begin(), test.end());
+
+	//for (int i = 0; i < test.size(); i++) 
+	//	if (test[i] >= threshold * maxProb)
+	//		indices.push_back(i);
+
+	for (int i = 0; i < test.size(); i++)
+		if (test[i] >= threshold)
+			indices.push_back(i);
+
+	return indices;
+}
+
 void cublasError(cublasStatus_t error, const char *file, int linenumber) {
   switch (error) {
   case CUBLAS_STATUS_SUCCESS:

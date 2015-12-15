@@ -16,7 +16,7 @@ private:
 	float jiggleAlpha; // in Ångström
 
 public:
-	PdbPicture(std::string filename, std::vector<char> &chains, float cellSize, float jiggleAlpha, int label);
+	PdbPicture(std::string filename, std::vector<char> &chains, float cellSize, float jiggleAlpha, std::vector<int> labels);
 	~PdbPicture();
 	std::string identify();
 	void normalize();

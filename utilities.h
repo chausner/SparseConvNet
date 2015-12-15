@@ -20,6 +20,8 @@ int triangleSize(int linearSize, int dimension);
 template <typename t>
 std::vector<int> vectorTopIndices(std::vector<t> &test, int k);
 
+std::vector<int> multiLabelClassification(std::vector<float> &test, float threshold);
+
 // Utilities to
 //// check for CUDA errors,
 //// use cublasSgemm for row-major matrix multiplication,

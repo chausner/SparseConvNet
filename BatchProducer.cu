@@ -50,7 +50,14 @@ void BatchProducer::preprocessBatch(int c, int cc, RNG &rng) {
     cnn.batchPool[cc].sampleNumbers.push_back(permutation[i]);
     cnn.batchPool[cc].batchSize++;
     cnn.batchPool[cc].interfaces[0].grids.push_back(SparseGrid());
-    cnn.batchPool[cc].labels.hVector().push_back(pic->label);
+
+	std::vector<int> &labelsVector = cnn.batchPool[cc].labels.hVector();
+	for (int j = 0; j < cnn.nClasses; j++)
+		if (std::find(pic->labels.begin(), pic->labels.end(), j) != pic->labels.end())
+			labelsVector.push_back(1);
+		else
+			labelsVector.push_back(0);
+	
     pic->codifyInputData(
         cnn.batchPool[cc].interfaces[0].grids.back(),
         cnn.batchPool[cc].interfaces[0].sub->features.hVector(),

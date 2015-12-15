@@ -11,7 +11,7 @@ public:
                                int &nSpatialSites, int spatialSize) = 0;
   virtual Picture *distort(RNG &rng, batchType type) { return this; }
   virtual std::string identify();
-  int label; //-1 for unknown
-  Picture(int label = -1);
+  std::vector<int> labels;
+  Picture(std::vector<int> labels);
   virtual ~Picture();
 };

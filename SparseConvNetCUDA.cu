@@ -338,20 +338,25 @@ void SparseConvNetCUDA::processDatasetRepeatTest(
       processBatch(*batch, 0, 0, f, g);
       for (int i = 0; i < batch->batchSize; ++i) {
         int ii = batch->sampleNumbers[i];
-        votes[ii][batch->predictions[i][0]]++;
+		for (int k = 0; k < batch->predictions[i].size(); k++)
+            votes[ii][batch->predictions[i][k]]++;
         for (int j = 0; j < dataset.nClasses; ++j)
           probs[ii][j] += batch->probabilities[i][j];
       }
     }
-    int errors = dataset.pictures.size();
+    float errors = dataset.pictures.size();
     float nll = 0;
     for (int i = 0; i < dataset.pictures.size(); ++i) {
-      std::vector<int> predictions = vectorTopIndices(probs[i], nTop);
-      for (int j = 0; j < nTop; j++)
-        if (predictions[j] == dataset.pictures[i]->label)
-          errors--;
-      nll -= log(
-          std::max(probs[i][dataset.pictures[i]->label] / rep, (float)1.0e-15));
+      std::vector<int> predictions = multiLabelClassification(probs[i], 0.5);
+	  for (int j = 0; j < predictions.size(); j++)
+		if (std::find(dataset.pictures[i]->labels.begin(), dataset.pictures[i]->labels.end(), predictions[j]) != dataset.pictures[i]->labels.end())
+		  errors -= 1.0 / nClasses;
+	  for (int j = 0; j < nClasses; j++) 
+		if (std::find(predictions.begin(), predictions.end(), j) == predictions.end())
+		  if (std::find(dataset.pictures[i]->labels.begin(), dataset.pictures[i]->labels.end(), j) == dataset.pictures[i]->labels.end())
+		    errors -= 1.0 / nClasses;
+      //nll -= log(
+      //    std::max(probs[i][dataset.pictures[i]->label] / rep, (float)1.0e-15));
     }
 
     if (!predictionsFilename.empty()) {
@@ -361,14 +366,20 @@ void SparseConvNetCUDA::processDatasetRepeatTest(
         f << dataset.header << std::endl;
       for (int i = 0; i < dataset.pictures.size(); ++i) {
         f << dataset.pictures[i]->identify();
-        if (dataset.type != UNLABELEDBATCH)
-          f << "," << dataset.pictures[i]->label;
+		if (dataset.type != UNLABELEDBATCH) {
+		  f << ",";
+		  for (int j = 0; j < dataset.pictures[i]->labels.size(); j++) {
+		  	if (j != 0)
+		  	  f << ";";
+		  	f << dataset.pictures[i]->labels[j];
+		  }
+		}
         for (int j = 0; j < dataset.nClasses; ++j)
           f << "," << probs[i][j] / rep;
         f << std::endl;
       }
     }
-    if (!confusionMatrixFilename.empty()) {
+    /*if (!confusionMatrixFilename.empty()) {
       std::vector<float> cm(dataset.nClasses * dataset.nClasses);
       for (int i = 0; i < dataset.pictures.size(); ++i)
         for (int j = 0; j < dataset.nClasses; ++j)
@@ -381,7 +392,7 @@ void SparseConvNetCUDA::processDatasetRepeatTest(
         }
         f << std::endl;
       }
-    }
+    }*/
     auto end = std::chrono::system_clock::now();
     auto diff = std::chrono::duration_cast<std::chrono::nanoseconds>(
                     end - start).count();
@@ -507,7 +518,7 @@ void SparseConvNetCUDA::processBatchDumpTopLevelFeaturess(
   assert(batch.interfaces[n - 1].nFeatures ==
          batch.interfaces[n - 1].featuresPresent.size());
   for (int i = 0; i < batch.batchSize; i++) {
-    f << batch.sampleNumbers[i] << " " << batch.labels.hVector()[i];
+    f << batch.sampleNumbers[i] << " " << batch.labels.hVector()[i]; // needs to be adapted for multi-label classification
     for (int j = 0; j < batch.interfaces[n - 1].nFeatures; j++)
       f << " "
         << batch.interfaces[n - 1]

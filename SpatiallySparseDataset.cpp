@@ -26,7 +26,7 @@ SpatiallySparseDataset SpatiallySparseDataset::extractValidationSet(float p) {
   }
   return val;
 }
-void SpatiallySparseDataset::subsetOfClasses(std::vector<int> activeClasses) {
+/*void SpatiallySparseDataset::subsetOfClasses(std::vector<int> activeClasses) {
   nClasses = activeClasses.size();
   std::vector<Picture *> p = pictures;
   pictures.clear();
@@ -60,7 +60,7 @@ SpatiallySparseDataset SpatiallySparseDataset::balancedSubset(int n) {
       classesDone++;
   }
   return bs;
-}
+}*/  // needs adaption for multi-label classification
 
 SpatiallySparseDataset SpatiallySparseDataset::subset(int n) {
   SpatiallySparseDataset subset;
