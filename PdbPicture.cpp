@@ -21,7 +21,7 @@ char elementSymbolToChar(std::string elementSymbol)
 }
 
 PdbPicture::PdbPicture(std::string filename, std::vector<char> &chains, float cellSize, float jiggleAlpha, int label) 
-	: Picture(label), cellSize(cellSize), jiggleAlpha(jiggleAlpha)
+	: Picture(label), filename(filename), cellSize(cellSize), jiggleAlpha(jiggleAlpha)
 {
 	std::ifstream file(filename.c_str());
 
