@@ -14,6 +14,10 @@ LIBS=-lopencv_core -lopencv_highgui -lopencv_imgproc -lrt -lcublas -larmadillo
 
 clean:
 	rm *.o
+    
+uniprot: $(OBJ) PdbPicture.o SpatiallySparseDatasetUniProt.o uniprot.o
+	$(NVCC) -o uniprot $(OBJ) PdbPicture.o SpatiallySparseDatasetUniProt.o uniprot.o $(LIBS) $(NVCCFLAGS)
+    
 casia: $(OBJ) OnlineHandwritingPicture.o SpatiallySparseDatasetCasiaOLHWDB.o casia.o
 	$(NVCC) -o casia $(OBJ) OnlineHandwritingPicture.o SpatiallySparseDatasetCasiaOLHWDB.o casia.o $(LIBS) $(NVCCFLAGS)
 
