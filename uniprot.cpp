@@ -7,7 +7,23 @@ int epoch = 0;
 int cudaDevice = -1; //PCI bus ID, -1 for default GPU
 int batchSize = 50;
 
-int main()
+class DeepPOFMP : public SparseConvNet {
+public:
+  DeepPOFMP(int dimension, int nInputFeatures, int nClasses, int cudaDevice,
+            int nTop = 1)
+      : SparseConvNet(dimension, nInputFeatures, nClasses, cudaDevice) {
+    const float fmpShrink = powf(2, 0.6666); // Fractional Max-Pooling ratio.
+    int l = 7; // Number of levels of FMP
+    for (int i = 0; i < l; i++) {
+      addLeNetLayerPOFMP(32 * (i + 1), 2, 1, 2, fmpShrink, VLEAKYRELU);
+    }
+    addLeNetLayerMP(32 * (l + 1), 2, 1, 1, 1, VLEAKYRELU);
+    addLeNetLayerMP(32 * (l + 2), 1, 1, 1, 1, VLEAKYRELU);
+    addSoftmaxLayer();
+  }
+};
+
+int main(int argc, char *argv[])
 {
 	std::string baseName = "weights/pfp";
 
@@ -22,10 +38,14 @@ int main()
 	trainSet.summary();
 	testSet.summary();
 
-	DeepC2 cnn(3, 4, 32, VLEAKYRELU, trainSet.nFeatures, trainSet.nClasses, 0.0f, cudaDevice);
+	DeepC2 cnn(3, 5, 32, VLEAKYRELU, trainSet.nFeatures, trainSet.nClasses, 0.0f, cudaDevice);
+    //DeepPOFMP cnn(3, trainSet.nFeatures, trainSet.nClasses, cudaDevice);
 
 	if (epoch > 0)
 		cnn.loadWeights(baseName, epoch);
+    
+    //cnn.processDatasetRepeatTest(testSet, batchSize, 25, "", "confusion.txt");    
+    //return 0;
 
 	for (epoch++; epoch <= epochs; epoch++)
 	{
@@ -33,10 +53,10 @@ int main()
 
 		cnn.processDataset(trainSet, batchSize, 0.003 * exp(-5.0 / epochs * epoch));
 
-		if (epoch % 50 == 0)
+		if (epoch % 100 == 0)
 		{
 			cnn.saveWeights(baseName, epoch);
-			cnn.processDatasetRepeatTest(testSet, batchSize, 3);
+			cnn.processDatasetRepeatTest(testSet, batchSize, 25, "", "confusion.txt");
 		}
 	}
 }

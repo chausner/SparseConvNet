@@ -1,14 +1,48 @@
 #include <string>
 #include <fstream>
 #include "PdbPicture.h"
-#include "utilities.h"
 
-char elementSymbolToChar(std::string elementSymbol)
+#include <algorithm> 
+#include <functional> 
+#include <cctype>
+#include <locale>
+
+static inline std::string ltrim(std::string s)
+{
+    size_t startpos = s.find_first_not_of(" \t");
+    if (startpos != std::string::npos)
+        s = s.substr(startpos);
+    return s;
+}
+
+static inline std::string rtrim(std::string s)
+{
+    size_t endpos = s.find_last_not_of(" \t");
+    if (endpos != std::string::npos)
+        s = s.substr(0, endpos + 1);
+    return s;
+}
+
+static inline std::string trim(std::string s)
+{
+	return ltrim(rtrim(s));
+}
+
+char codifyAtom(std::string elementSymbol, std::string atom_name)
 {
 	switch (elementSymbol[0])
 	{
 	case 'C':
-		return 0;
+		if (atom_name == "CA")
+			return 4;
+		else if (atom_name == "CB")
+			return 5;
+		else if (atom_name.substr(0, 2) == "CG")
+			return 6;
+		else if (atom_name.substr(0, 2) == "CD")
+			return 7;
+		else
+		    return 0;
 	case 'O':
 		return 1;
 	case 'N':
@@ -48,20 +82,20 @@ PdbPicture::PdbPicture(std::string filename, std::vector<char> &chains, float ce
 			break; // only process first model
 		else if (recordName == "ATOM  ")
 		{
-			int atom_serial_num = std::stoi(line.substr(6, 11));
-			std::string atom_name = trim(line.substr(12, 16));
-			std::string atom_residue_name = trim(line.substr(17, 20));
+			int atom_serial_num = std::stoi(line.substr(6, 6));
+			std::string atom_name = trim(line.substr(12, 4));
+			std::string atom_residue_name = trim(line.substr(17, 3));
 			char atom_chain_id = line[21];
-			int atom_residue_seq = std::stoi(line.substr(22, 26));
-			float atom_coord_x = std::stof(line.substr(30, 38));
-			float atom_coord_y = std::stof(line.substr(38, 46));
-			float atom_coord_z = std::stof(line.substr(46, 54));
-			std::string atom_element = trim(line.substr(76, 78));
+			int atom_residue_seq = std::stoi(line.substr(22, 4));
+			float atom_coord_x = std::stof(line.substr(30, 8));
+			float atom_coord_y = std::stof(line.substr(38, 8));
+			float atom_coord_z = std::stof(line.substr(46, 8));
+			std::string atom_element = trim(line.substr(76, 2));
 
 			if (std::find(chains.begin(), chains.end(), atom_chain_id) != chains.end())
 			{
 				atoms.push_back(std::tuple<float, float, float>(atom_coord_x, atom_coord_y, atom_coord_z));
-				atomTypes.push_back(elementSymbolToChar(atom_element));
+				atomTypes.push_back(codifyAtom(atom_element, atom_name));
 			}
 		}
 	}
@@ -138,7 +172,7 @@ int mapToGrid(float coord, int inputFieldSize)
 
 void PdbPicture::codifyInputData(SparseGrid &grid, std::vector<float> &features, int &nSpatialSites, int spatialSize)
 {
-	for (int c = 0; c < 4; c++)
+	for (int c = 0; c < 8; c++)
 	    features.push_back(0); // Background feature
 
 	grid.backgroundCol = nSpatialSites++;
@@ -167,17 +201,10 @@ void PdbPicture::codifyInputData(SparseGrid &grid, std::vector<float> &features,
 
 			grid.mp[n] = nSpatialSites++;
 
-			float featureVector[4] = {};
+			float featureVector[8] = {};
 			featureVector[atomTypes[i]] = 1;
 
-			features.push_back(featureVector[0]);
-			features.push_back(featureVector[1]);
-			features.push_back(featureVector[2]);
-			features.push_back(featureVector[3]);
-
-			//float featureVector[4] = {};
-			//featureVector[atomTypes[i]] = 1;
-			//features.insert(features.end(), featureVector, featureVector + 4);
+			features.insert(features.end(), featureVector, featureVector + 8);
 		}
 		else
 		{
