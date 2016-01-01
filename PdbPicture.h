@@ -11,6 +11,9 @@ private:
 	std::string filename;
 	arma::mat points;
 	std::vector<char> atomTypes;
+    std::vector<float> hydrophobicity;
+    std::vector<float> polarity;
+    std::vector<float> charge;
 
 	float cellSize;    // in Ångström
 	float jiggleAlpha; // in Ångström
