@@ -1,14 +1,48 @@
 #include <string>
 #include <fstream>
 #include "PdbPicture.h"
-#include "utilities.h"
 
-char elementSymbolToChar(std::string elementSymbol)
+#include <algorithm> 
+#include <functional> 
+#include <cctype>
+#include <locale>
+
+static inline std::string ltrim(std::string s)
+{
+    size_t startpos = s.find_first_not_of(" \t");
+    if (startpos != std::string::npos)
+        s = s.substr(startpos);
+    return s;
+}
+
+static inline std::string rtrim(std::string s)
+{
+    size_t endpos = s.find_last_not_of(" \t");
+    if (endpos != std::string::npos)
+        s = s.substr(0, endpos + 1);
+    return s;
+}
+
+static inline std::string trim(std::string s)
+{
+	return ltrim(rtrim(s));
+}
+
+char codifyAtom(std::string elementSymbol, std::string atom_name)
 {
 	switch (elementSymbol[0])
 	{
 	case 'C':
-		return 0;
+		if (atom_name == "CA")
+			return 4;
+		else if (atom_name == "CB")
+			return 5;
+		else if (atom_name.substr(0, 2) == "CG")
+			return 6;
+		else if (atom_name.substr(0, 2) == "CD")
+			return 7;
+		else
+		    return 0;
 	case 'O':
 		return 1;
 	case 'N':
@@ -18,6 +52,81 @@ char elementSymbolToChar(std::string elementSymbol)
 	default:
 		return -1;
 	}
+}
+
+float getHydrophobicity(std::string atom_residue_name)
+{
+    if (atom_residue_name == "ALA") return 1.8;
+    else if (atom_residue_name == "ARG") return -4.5;
+    else if (atom_residue_name == "ASN") return -3.5;
+    else if (atom_residue_name == "ASP") return -3.5;
+    else if (atom_residue_name == "CYS") return 2.5;
+    else if (atom_residue_name == "GLU") return -3.5;
+    else if (atom_residue_name == "GLN") return -3.5;
+    else if (atom_residue_name == "GLY") return -0.4;
+    else if (atom_residue_name == "HIS") return -3.2;
+    else if (atom_residue_name == "ILE") return 4.5;
+    else if (atom_residue_name == "LEU") return 3.8;
+    else if (atom_residue_name == "LYS") return -3.9;
+    else if (atom_residue_name == "MET") return 1.9;
+    else if (atom_residue_name == "PHE") return 2.8;
+    else if (atom_residue_name == "PRO") return -1.6;
+    else if (atom_residue_name == "SER") return -0.8;
+    else if (atom_residue_name == "THR") return -0.7;
+    else if (atom_residue_name == "TRP") return -0.9;
+    else if (atom_residue_name == "TYR") return -1.3;
+    else if (atom_residue_name == "VAL") return 4.2;
+    else return 0;
+}
+
+float getPolarity(std::string atom_residue_name)
+{
+    if (atom_residue_name == "ALA") return 0;
+    else if (atom_residue_name == "ARG") return 1;
+    else if (atom_residue_name == "ASN") return 1;
+    else if (atom_residue_name == "ASP") return 1;
+    else if (atom_residue_name == "CYS") return 0;
+    else if (atom_residue_name == "GLU") return 1;
+    else if (atom_residue_name == "GLN") return 1;
+    else if (atom_residue_name == "GLY") return 0;
+    else if (atom_residue_name == "HIS") return 1;
+    else if (atom_residue_name == "ILE") return 0;
+    else if (atom_residue_name == "LEU") return 0;
+    else if (atom_residue_name == "LYS") return 1;
+    else if (atom_residue_name == "MET") return 0;
+    else if (atom_residue_name == "PHE") return 0;
+    else if (atom_residue_name == "PRO") return 0;
+    else if (atom_residue_name == "SER") return 1;
+    else if (atom_residue_name == "THR") return 1;
+    else if (atom_residue_name == "TRP") return 0;
+    else if (atom_residue_name == "TYR") return 1;
+    else if (atom_residue_name == "VAL") return 0;
+    else return 0;
+}
+
+float getCharge(std::string atom_residue_name)
+{
+    if (atom_residue_name == "ALA") return 0;
+    else if (atom_residue_name == "ARG") return 1;
+    else if (atom_residue_name == "ASN") return 0;
+    else if (atom_residue_name == "ASP") return -1;
+    else if (atom_residue_name == "CYS") return 0;
+    else if (atom_residue_name == "GLU") return -1;
+    else if (atom_residue_name == "GLN") return 0;
+    else if (atom_residue_name == "GLY") return 0;
+    else if (atom_residue_name == "HIS") return 0;
+    else if (atom_residue_name == "ILE") return 0;
+    else if (atom_residue_name == "LEU") return 0;
+    else if (atom_residue_name == "LYS") return 1;
+    else if (atom_residue_name == "MET") return 0;
+    else if (atom_residue_name == "PHE") return 0;
+    else if (atom_residue_name == "PRO") return 0;
+    else if (atom_residue_name == "SER") return 0;
+    else if (atom_residue_name == "THR") return 0;
+    else if (atom_residue_name == "TRP") return 0;
+    else if (atom_residue_name == "TYR") return 0;
+    else if (atom_residue_name == "VAL") return 0;
+    else return 0;
 }
 
 PdbPicture::PdbPicture(std::string filename, std::vector<char> &chains, float cellSize, float jiggleAlpha, std::vector<int> labels) 
@@ -48,20 +157,23 @@ PdbPicture::PdbPicture(std::string filename, std::vector<char> &chains, float ce
 			break; // only process first model
 		else if (recordName == "ATOM  ")
 		{
-			int atom_serial_num = std::stoi(line.substr(6, 11));
-			std::string atom_name = trim(line.substr(12, 16));
-			std::string atom_residue_name = trim(line.substr(17, 20));
+			int atom_serial_num = std::stoi(line.substr(6, 6));
+			std::string atom_name = trim(line.substr(12, 4));
+			std::string atom_residue_name = trim(line.substr(17, 3));
 			char atom_chain_id = line[21];
-			int atom_residue_seq = std::stoi(line.substr(22, 26));
-			float atom_coord_x = std::stof(line.substr(30, 38));
-			float atom_coord_y = std::stof(line.substr(38, 46));
-			float atom_coord_z = std::stof(line.substr(46, 54));
-			std::string atom_element = trim(line.substr(76, 78));
+			int atom_residue_seq = std::stoi(line.substr(22, 4));
+			float atom_coord_x = std::stof(line.substr(30, 8));
+			float atom_coord_y = std::stof(line.substr(38, 8));
+			float atom_coord_z = std::stof(line.substr(46, 8));
+			std::string atom_element = trim(line.substr(76, 2));
 
 			if (std::find(chains.begin(), chains.end(), atom_chain_id) != chains.end())
 			{
 				atoms.push_back(std::tuple<float, float, float>(atom_coord_x, atom_coord_y, atom_coord_z));
-				atomTypes.push_back(elementSymbolToChar(atom_element));
+				atomTypes.push_back(codifyAtom(atom_element, atom_name));
+                hydrophobicity.push_back(getHydrophobicity(atom_residue_name));
+                polarity.push_back(getPolarity(atom_residue_name));
+                charge.push_back(getCharge(atom_residue_name));
 			}
 		}
 	}
@@ -138,7 +250,7 @@ int mapToGrid(float coord, int inputFieldSize)
 
 void PdbPicture::codifyInputData(SparseGrid &grid, std::vector<float> &features, int &nSpatialSites, int spatialSize)
 {
-	for (int c = 0; c < 4; c++)
+	for (int c = 0; c < 11; c++)
 	    features.push_back(0); // Background feature
 
 	grid.backgroundCol = nSpatialSites++;
@@ -167,17 +279,14 @@ void PdbPicture::codifyInputData(SparseGrid &grid, std::vector<float> &features,
 
 			grid.mp[n] = nSpatialSites++;
 
-			float featureVector[4] = {};
+			float featureVector[11] = {};
+
 			featureVector[atomTypes[i]] = 1;
+            featureVector[8] = hydrophobicity[i] / 10;
+            featureVector[9] = polarity[i]; 
+            featureVector[10] = charge[i]; 
 
-			features.push_back(featureVector[0]);
-			features.push_back(featureVector[1]);
-			features.push_back(featureVector[2]);
-			features.push_back(featureVector[3]);
-
-			//float featureVector[4] = {};
-			//featureVector[atomTypes[i]] = 1;
-			//features.insert(features.end(), featureVector, featureVector + 4);
+			features.insert(features.end(), featureVector, featureVector + 11);
 		}
 		else
 		{

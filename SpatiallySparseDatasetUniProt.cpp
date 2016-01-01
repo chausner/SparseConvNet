@@ -10,7 +10,7 @@ SpatiallySparseDataset LoadUniProtDataset(const char *filename, batchType batchT
 
 	dataset.name = batchType == TRAINBATCH ? "UniProt train set" : "UniProt test set";
 	dataset.type = batchType;
-	dataset.nFeatures = 4;
+	dataset.nFeatures = 11;
 
 	std::ifstream file(filename);
 
