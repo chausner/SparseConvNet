@@ -44,7 +44,10 @@ SpatiallySparseDataset LoadUniProtDataset(const char *filename, batchType batchT
 
 		std::vector<char> chains(chainsStr.begin(), chainsStr.end());
 
-		dataset.pictures.push_back(new PdbPicture(pdbFilename, chains, cellSize, jiggleAlpha, label));
+        PdbPicture *pic = new PdbPicture(pdbFilename, chains, cellSize, jiggleAlpha, labels);
+        
+        if (!pic->empty())
+		    dataset.pictures.push_back(pic);
 	}
 
 	file.close();

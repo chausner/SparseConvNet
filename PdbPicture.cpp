@@ -135,10 +135,7 @@ PdbPicture::PdbPicture(std::string filename, std::vector<char> &chains, float ce
 	std::ifstream file(filename.c_str());
 
 	if (!file)
-	{
-		std::cout << "Cannot find " << filename << std::endl;
-		exit(EXIT_FAILURE);
-	}
+		std::cout << "Warning: cannot find " << filename << std::endl;
 
 	std::vector<std::tuple<float, float, float>> atoms;
 
@@ -181,10 +178,7 @@ PdbPicture::PdbPicture(std::string filename, std::vector<char> &chains, float ce
 	file.close();
     
     if (atoms.empty())
-    {
-		std::cout << "No atoms found in " << filename << std::endl;
-		exit(EXIT_FAILURE);
-    }
+		std::cout << "Warning: no atoms found in " << filename << std::endl;
 
 	points.set_size(atoms.size(), 3);
 
@@ -198,6 +192,11 @@ PdbPicture::PdbPicture(std::string filename, std::vector<char> &chains, float ce
 
 PdbPicture::~PdbPicture()
 {
+}
+
+bool PdbPicture::empty()
+{
+    return points.size() == 0;
 }
 
 std::string PdbPicture::identify()

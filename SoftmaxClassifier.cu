@@ -1,4 +1,5 @@
 #include "SoftmaxClassifier.h"
+#include <algorithm>
 #include <iostream>
 #include <vector>
 #include <cassert>
@@ -46,6 +47,10 @@ void SoftmaxClassifier(SpatiallySparseBatchInterface &input,
     for (int i = 0; i < batch.batchSize; i++) {
       //batch.negativeLogLikelihood -=
       //    log(max(batch.probabilities[i][batch.labels.hVector()[i]], 1.0e-15));
+	  for (int j = 0; j < input.nFeatures; j++) {
+		float error = batch.probabilities[i][j] - batch.labels.hVector()[i * input.nFeatures + j];
+		batch.sumSquaredError += error * error;
+	  }
       for (int j = 0; j < batch.predictions[i].size(); j++) {
 		if (batch.labels.hVector()[i * input.nFeatures + batch.predictions[i][j]] == 1) {
           batch.mistakes -= 1.0 / input.nFeatures;

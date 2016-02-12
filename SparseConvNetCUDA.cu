@@ -50,7 +50,7 @@ SparseConvNetCUDA::~SparseConvNetCUDA() {
 void SparseConvNetCUDA::addLearntLayer(int nFeatures,
                                        ActivationFunction activationFn,
                                        float dropout, float alpha) {
-  if (activationFn != SOFTMAX)
+  if (activationFn != SOFTMAX && activationFn != SIGMOID)
     nFeatures = std::max(KERNELBLOCKSIZE, intRound(nFeatures, KERNELBLOCKSIZE));
   if (dropout > 0)
     dropout = 1 -
@@ -196,7 +196,7 @@ void SparseConvNetCUDA::addTerminalPoolingLayer(int poolSize, int S) {
 }
 
 void SparseConvNetCUDA::addSoftmaxLayer() {
-  addLearntLayer(nClasses, SOFTMAX, 0.0f, 1);
+  addLearntLayer(nClasses, SIGMOID, 0.0f, 1);
   inputSpatialSize = 1;
   for (int i = layers.size() - 1; i >= 0; i--) {
     inputSpatialSize = layers[i]->calculateInputSpatialSize(inputSpatialSize);
@@ -271,7 +271,7 @@ float SparseConvNetCUDA::processDataset(SpatiallySparseDataset &dataset,
                                         int batchSize, float learningRate,
                                         float momentum) {
   assert(dataset.pictures.size() > 0);
-  float errorRate = 0, nll = 0;
+  float errorRate = 0, nll = 0, sse = 0;
   multiplyAddCount = 0;
   auto start = std::chrono::system_clock::now();
   std::ofstream f, g;
@@ -283,7 +283,12 @@ float SparseConvNetCUDA::processDataset(SpatiallySparseDataset &dataset,
   while (SpatiallySparseBatch *batch = bp.nextBatch()) {
     processBatch(*batch, learningRate, momentum, f, g);
     errorRate += batch->mistakes * 1.0 / dataset.pictures.size();
-    nll += batch->negativeLogLikelihood * 1.0 / dataset.pictures.size();
+    //nll += batch->negativeLogLikelihood * 1.0 / dataset.pictures.size();
+	sse += batch->sumSquaredError * 1.0 / dataset.pictures.size();
+	/*for (int i = 0; i < batch->probabilities.size(); i++)
+	for (int j = 0; j < dataset.nClasses; ++j)
+		std::cout << batch->probabilities[i][j] << " ";
+	std::cout << std::endl;*/
   }
   auto end = std::chrono::system_clock::now();
   auto diff =
@@ -310,7 +315,8 @@ float SparseConvNetCUDA::processDataset(SpatiallySparseDataset &dataset,
   // }
   if (dataset.type != RESCALEBATCH)
     std::cout << dataset.name << " Mistakes:" << 100.0 * errorRate
-              << "% NLL:" << nll << " MegaMultiplyAdds/sample:"
+              //<< "% NLL:" << nll << " MegaMultiplyAdds/sample:"
+	          << "% SSE:" << sse << " MegaMultiplyAdds/sample:"
               << roundf(multiplyAddCount / dataset.pictures.size() / 1000000)
               << " time:" << diff / 1000000000L
               << "s GigaMultiplyAdds/s:" << roundf(multiplyAddCount / diff)
@@ -331,6 +337,7 @@ void SparseConvNetCUDA::processDatasetRepeatTest(
     votes[i].resize(dataset.nClasses);
     probs[i].resize(dataset.nClasses);
   }
+  float totalErrors = 0;
   for (int rep = 1; rep <= nReps; ++rep) {
     BatchProducer bp(*this, dataset, inputSpatialSize, batchSize);
     while (SpatiallySparseBatch *batch = bp.nextBatch()) {
@@ -342,12 +349,16 @@ void SparseConvNetCUDA::processDatasetRepeatTest(
             votes[ii][batch->predictions[i][k]]++;
         for (int j = 0; j < dataset.nClasses; ++j)
           probs[ii][j] += batch->probabilities[i][j];
+		//for (int j = 0; j < dataset.nClasses; ++j)
+		//	std::cout << batch->probabilities[i][j] << " ";
+		//std::cout << std::endl;
       }
     }
     float errors = dataset.pictures.size();
     float nll = 0;
+	float sse = 0;
     for (int i = 0; i < dataset.pictures.size(); ++i) {
-      std::vector<int> predictions = multiLabelClassification(probs[i], 0.5);
+      std::vector<int> predictions = multiLabelClassification(probs[i], 0.5 * rep);
 	  for (int j = 0; j < predictions.size(); j++)
 		if (std::find(dataset.pictures[i]->labels.begin(), dataset.pictures[i]->labels.end(), predictions[j]) != dataset.pictures[i]->labels.end())
 		  errors -= 1.0 / nClasses;
@@ -357,6 +368,10 @@ void SparseConvNetCUDA::processDatasetRepeatTest(
 		    errors -= 1.0 / nClasses;
       //nll -= log(
       //    std::max(probs[i][dataset.pictures[i]->label] / rep, (float)1.0e-15));
+	  for (int j = 0; j < nClasses; j++) {
+		  float error = probs[i][j] / rep - (std::find(dataset.pictures[i]->labels.begin(), dataset.pictures[i]->labels.end(), j) != dataset.pictures[i]->labels.end() ? 1 : 0);
+		  sse += error * error;
+	  }
     }
 
     if (!predictionsFilename.empty()) {
@@ -398,7 +413,8 @@ void SparseConvNetCUDA::processDatasetRepeatTest(
                     end - start).count();
     std::cout << dataset.name << " rep " << rep << "/" << nReps
               << " Mistakes: " << 100.0 * errors / dataset.pictures.size()
-              << "% NLL " << nll / dataset.pictures.size()
+              //<< "% NLL " << nll / dataset.pictures.size()
+		      << "% SSE " << sse / dataset.pictures.size()
               << " MegaMultiplyAdds/sample:"
               << roundf(multiplyAddCount / dataset.pictures.size() / 1000000)
               << " time:" << diff / 1000000000L
@@ -481,7 +497,7 @@ float SparseConvNetCUDA::processIndexLearnerDataset(
     SpatiallySparseDataset &dataset, int batchSize, float learningRate,
     float momentum) {
   assert(dataset.pictures.size() > 0);
-  float errorRate = 0, nll = 0;
+  float errorRate = 0, nll = 0, sse = 0;
   auto start = std::chrono::system_clock::now();
   multiplyAddCount = 0;
   std::ofstream f;
@@ -493,14 +509,16 @@ float SparseConvNetCUDA::processIndexLearnerDataset(
   while (SpatiallySparseBatch *batch = bp.nextBatch()) {
     processIndexLearnerBatch(*batch, learningRate, momentum, f);
     errorRate += batch->mistakes * 1.0 / dataset.pictures.size();
-    nll += batch->negativeLogLikelihood * 1.0 / dataset.pictures.size();
+    //nll += batch->negativeLogLikelihood * 1.0 / dataset.pictures.size();
+	sse += batch->sumSquaredError * 1.0 / dataset.pictures.size();
   }
   auto end = std::chrono::system_clock::now();
   auto diff =
       std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
   if (dataset.type == TRAINBATCH)
     std::cout << dataset.name << " Mistakes:" << 100 * errorRate
-              << "% NLL:" << nll << " MegaMultiplyAdds/sample:"
+              //<< "% NLL:" << nll << " MegaMultiplyAdds/sample:"
+	          << "% SSE:" << sse << " MegaMultiplyAdds/sample:"
               << roundf(multiplyAddCount / dataset.pictures.size() / 1000000)
               << " time:" << diff / 1000000000L
               << "s GigaMultiplyAdds/s:" << roundf(multiplyAddCount / diff)
@@ -518,7 +536,7 @@ void SparseConvNetCUDA::processBatchDumpTopLevelFeaturess(
   assert(batch.interfaces[n - 1].nFeatures ==
          batch.interfaces[n - 1].featuresPresent.size());
   for (int i = 0; i < batch.batchSize; i++) {
-    f << batch.sampleNumbers[i] << " " << batch.labels.hVector()[i]; // needs to be adapted for multi-label classification
+    f << batch.sampleNumbers[i] << " " << batch.labels.hVector()[i]; // needs adaption for multi-label classification
     for (int j = 0; j < batch.interfaces[n - 1].nFeatures; j++)
       f << " "
         << batch.interfaces[n - 1]

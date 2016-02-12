@@ -16,5 +16,6 @@ void SpatiallySparseBatch::reset() {
   predictions.resize(0);
   probabilities.resize(0);
   negativeLogLikelihood = 0;
+  sumSquaredError = 0;
   mistakes = 0;
 }

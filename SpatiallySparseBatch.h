@@ -17,6 +17,7 @@ public:
   std::vector<std::vector<int>> predictions;
   std::vector<std::vector<float>> probabilities;
   float negativeLogLikelihood;
+  float sumSquaredError;
   float mistakes;
   void reset();
 };

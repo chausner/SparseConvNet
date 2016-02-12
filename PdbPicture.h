@@ -21,6 +21,7 @@ private:
 public:
 	PdbPicture(std::string filename, std::vector<char> &chains, float cellSize, float jiggleAlpha, std::vector<int> labels);
 	~PdbPicture();
+    bool empty();
 	std::string identify();
 	void normalize();
 	void random_rotation(RNG &rng);
