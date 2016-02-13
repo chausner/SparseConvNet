@@ -424,10 +424,34 @@ void SparseConvNetCUDA::processDatasetRepeatTest(
               << std::endl;
   }
 }
-void SparseConvNetCUDA::loadWeights(std::string baseName, int epoch,
-                                    bool momentum, int firstNlayers) {
-  std::string filename = std::string(baseName) + std::string("_epoch-") +
-                         std::to_string(epoch) + std::string(".cnn");
+void SparseConvNetCUDA::processDatasetRepeatTestGetProbabilities(
+    SpatiallySparseDataset &dataset, int batchSize, int nReps,
+	std::vector<std::vector<float>> &probabilities) {
+  assert(dataset.pictures.size() > 0);
+  multiplyAddCount = 0;
+  probabilities.resize(dataset.pictures.size());
+  for (int i = 0; i < dataset.pictures.size(); ++i) {
+    probabilities[i].resize(dataset.nClasses);
+  }
+  for (int rep = 1; rep <= nReps; ++rep) {
+    BatchProducer bp(*this, dataset, inputSpatialSize, batchSize);
+    while (SpatiallySparseBatch *batch = bp.nextBatch()) {
+      std::ofstream f, g;
+      processBatch(*batch, 0, 0, f, g);
+      for (int i = 0; i < batch->batchSize; ++i) {
+        int ii = batch->sampleNumbers[i];
+        for (int j = 0; j < dataset.nClasses; ++j)
+          probabilities[ii][j] += batch->probabilities[i][j];
+      }
+    }
+  }
+  for (int i = 0; i < dataset.pictures.size(); ++i) {
+    for (int j = 0; j < dataset.nClasses; ++j) {
+      probabilities[i][j] /= nReps;
+	}
+  }
+}
+void SparseConvNetCUDA::loadWeights(std::string filename, bool momentum, int firstNlayers) {
   std::ifstream f;
   f.open(filename.c_str(), std::ios::out | std::ios::binary);
   if (f) {
@@ -443,10 +467,7 @@ void SparseConvNetCUDA::loadWeights(std::string baseName, int epoch,
            sizeof(float) * inputNormalizingConstants.size());
   f.close();
 }
-void SparseConvNetCUDA::saveWeights(std::string baseName, int epoch,
-                                    bool momentum) {
-  std::string filename = std::string(baseName) + std::string("_epoch-") +
-                         std::to_string(epoch) + std::string(".cnn");
+void SparseConvNetCUDA::saveWeights(std::string filename, bool momentum) {
   std::ofstream f;
   f.open(filename.c_str(), std::ios::binary);
   if (f) {
@@ -536,12 +557,14 @@ void SparseConvNetCUDA::processBatchDumpTopLevelFeaturess(
   assert(batch.interfaces[n - 1].nFeatures ==
          batch.interfaces[n - 1].featuresPresent.size());
   for (int i = 0; i < batch.batchSize; i++) {
-    f << batch.sampleNumbers[i] << " " << batch.labels.hVector()[i]; // needs adaption for multi-label classification
+    //f << batch.sampleNumbers[i] << " "; // << batch.labels.hVector()[i]; // needs adaption for multi-label classification
+    //for (int j = 0; j < 44; j++)
+    //  f << batch.labels.hVector()[i * 44 + j] << " ";
     for (int j = 0; j < batch.interfaces[n - 1].nFeatures; j++)
-      f << " "
+      f //<< " "
         << batch.interfaces[n - 1]
                .sub->features
-               .hVector()[i * batch.interfaces[n - 1].nFeatures + j];
+               .hVector()[i * batch.interfaces[n - 1].nFeatures + j] << " ";
     f << std::endl;
   }
 }

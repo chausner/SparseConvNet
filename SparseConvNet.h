@@ -54,15 +54,17 @@ public:
                                 int batchSize = 100, int nReps = 12,
                                 std::string predictionsFilename = "",
                                 std::string confusionMatrixFilename = "");
+  void processDatasetRepeatTestGetProbabilities(SpatiallySparseDataset &dataset,
+                                                int batchSize, int nReps,
+	                                            std::vector<std::vector<float>> &probabilities);
   float processIndexLearnerDataset(SpatiallySparseDataset &dataset,
                                    int batchSize = 100,
                                    float learningRate = 0.0,
                                    float momentum = 0.99);
   void processDatasetDumpTopLevelFeatures(SpatiallySparseDataset &dataset,
                                           int batchSize, int reps = 1);
-  void loadWeights(std::string baseName, int epoch, bool momentum = false,
-                   int firstNlayers = 1000000);
-  void saveWeights(std::string baseName, int epoch, bool momentum = false);
+  void loadWeights(std::string filename, bool momentum = false, int firstNlayers = 1000000);
+  void saveWeights(std::string filename, bool momentum = false);
   void calculateInputRegularizingConstants(SpatiallySparseDataset dataset);
 };
 
@@ -92,8 +94,7 @@ public:
                                    float momentum = 0.99);
   void processDatasetDumpTopLevelFeatures(SpatiallySparseDataset &dataset,
                                           int batchSize, int reps = 1);
-  void loadWeights(std::string baseName, int epoch, bool momentum = false,
-                   int firstNlayers = 1000000);
-  void saveWeights(std::string baseName, int epoch, bool momentum = false);
+  void loadWeights(std::string filename, bool momentum = false, int firstNlayers = 1000000);
+  void saveWeights(std::string filename, bool momentum = false);
   void calculateInputRegularizingConstants(SpatiallySparseDataset dataset);
 };

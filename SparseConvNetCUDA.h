@@ -99,6 +99,9 @@ public:
                                 int batchSize = 100, int nReps = 12,
                                 std::string predictionsFilename = "",
                                 std::string confusionMatrixFilename = "");
+  void processDatasetRepeatTestGetProbabilities(SpatiallySparseDataset &dataset,
+                                                int batchSize, int nReps,
+	                                            std::vector<std::vector<float>> &probabilities);
   float processIndexLearnerDataset(SpatiallySparseDataset &dataset,
                                    int batchSize = 100,
                                    float learningRate = 0.0,
@@ -107,8 +110,7 @@ public:
                                          std::ofstream &f);
   void processDatasetDumpTopLevelFeatures(SpatiallySparseDataset &dataset,
                                           int batchSize, int reps = 1);
-  void loadWeights(std::string baseName, int epoch, bool momentum,
-                   int firstNlayers = 1000000);
-  void saveWeights(std::string baseName, int epoch, bool momentum);
+  void loadWeights(std::string filename, bool momentum, int firstNlayers = 1000000);
+  void saveWeights(std::string filename, bool momentum);
   void calculateInputRegularizingConstants(SpatiallySparseDataset dataset);
 };

@@ -17,6 +17,9 @@ clean:
     
 uniprot: $(OBJ) PdbPicture.o SpatiallySparseDatasetUniProt.o uniprot.o
 	$(NVCC) -o uniprot $(OBJ) PdbPicture.o SpatiallySparseDatasetUniProt.o uniprot.o $(LIBS) $(NVCCFLAGS)
+
+uniprot_query: $(OBJ) PdbPicture.o SpatiallySparseDatasetUniProt.o uniprot_query.o
+	$(NVCC) -o uniprot_query $(OBJ) PdbPicture.o SpatiallySparseDatasetUniProt.o uniprot_query.o $(LIBS) $(NVCCFLAGS)
     
 casia: $(OBJ) OnlineHandwritingPicture.o SpatiallySparseDatasetCasiaOLHWDB.o casia.o
 	$(NVCC) -o casia $(OBJ) OnlineHandwritingPicture.o SpatiallySparseDatasetCasiaOLHWDB.o casia.o $(LIBS) $(NVCCFLAGS)
